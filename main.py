@@ -28,9 +28,11 @@ except ImportError as e:
 # Import our UI manager
 try:
     from ui_manager import UIManager
-except ImportError as e:
+except Exception as e:
+    import traceback
     print(f"Error importing UI manager: {e}")
-    print("Make sure all required files are in the same directory")
+    traceback.print_exc()
+    print("\nMake sure all required files are in the same directory")
     sys.exit(1)
 
 # Initialize logger

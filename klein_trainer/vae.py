@@ -482,38 +482,46 @@ class KleinVAE(nn.Module):
 
     @staticmethod
     def _convert_diffusers_to_bfl(sd: dict) -> dict:
-        """Convert diffusers-format VAE state dict to BFL format."""
+        """Convert diffusers-format VAE state dict to BFL format.
+
+        Key differences:
+        - Naming: down_blocks/up_blocks/resnets → down/up/block
+        - Decoder up_blocks are in REVERSE order (diffusers 0=top, BFL 0=bottom)
+        - Attention weights are [C,C] in diffusers but [C,C,1,1] in BFL (Conv2d)
+        """
         import re
+
+        # Count decoder up_blocks to know the max index for reversal
+        max_up = max(
+            (int(m.group(1)) for k in sd
+             if (m := re.match(r'decoder\.up_blocks\.(\d+)', k))),
+            default=3
+        )
+
         new_sd = {}
         for key, val in sd.items():
             new_key = key
 
-            # --- Encoder ---
-            # down_blocks.{i}.resnets.{j} → down.{i}.block.{j}
+            # --- Encoder (indices stay the same) ---
             new_key = re.sub(r'encoder\.down_blocks\.(\d+)\.resnets\.(\d+)',
                              r'encoder.down.\1.block.\2', new_key)
-            # down_blocks.{i}.downsamplers.0.conv → down.{i}.downsample.conv
             new_key = re.sub(r'encoder\.down_blocks\.(\d+)\.downsamplers\.0\.conv',
                              r'encoder.down.\1.downsample.conv', new_key)
-            # mid_block.resnets.{j} → mid.block_{j+1}
             new_key = re.sub(r'encoder\.mid_block\.resnets\.(\d+)',
                              lambda m: f'encoder.mid.block_{int(m.group(1))+1}', new_key)
 
-            # --- Decoder ---
-            # up_blocks.{i}.resnets.{j} → up.{i}.block.{j}
+            # --- Decoder (up_block indices are REVERSED) ---
             new_key = re.sub(r'decoder\.up_blocks\.(\d+)\.resnets\.(\d+)',
-                             r'decoder.up.\1.block.\2', new_key)
-            # up_blocks.{i}.upsamplers.0.conv → up.{i}.upsample.conv
+                             lambda m: f'decoder.up.{max_up - int(m.group(1))}.block.{m.group(2)}',
+                             new_key)
             new_key = re.sub(r'decoder\.up_blocks\.(\d+)\.upsamplers\.0\.conv',
-                             r'decoder.up.\1.upsample.conv', new_key)
-            # mid_block.resnets.{j} → mid.block_{j+1}
+                             lambda m: f'decoder.up.{max_up - int(m.group(1))}.upsample.conv',
+                             new_key)
             new_key = re.sub(r'decoder\.mid_block\.resnets\.(\d+)',
                              lambda m: f'decoder.mid.block_{int(m.group(1))+1}', new_key)
 
             # --- Both encoder and decoder ---
-            # conv_shortcut → nin_shortcut
             new_key = new_key.replace('.conv_shortcut.', '.nin_shortcut.')
-            # conv_norm_out → norm_out
             new_key = new_key.replace('conv_norm_out', 'norm_out')
             # Attention: mid_block.attentions.0 → mid.attn_1
             new_key = new_key.replace('mid_block.attentions.0.group_norm', 'mid.attn_1.norm')
@@ -521,6 +529,10 @@ class KleinVAE(nn.Module):
             new_key = new_key.replace('mid_block.attentions.0.to_k', 'mid.attn_1.k')
             new_key = new_key.replace('mid_block.attentions.0.to_v', 'mid.attn_1.v')
             new_key = new_key.replace('mid_block.attentions.0.to_out.0', 'mid.attn_1.proj_out')
+
+            # Reshape attention weights: [C,C] → [C,C,1,1] (Linear → Conv2d)
+            if 'attn_1' in new_key and 'weight' in new_key and val.ndim == 2:
+                val = val.unsqueeze(-1).unsqueeze(-1)
 
             new_sd[new_key] = val
         return new_sd

@@ -1,31 +1,9 @@
-from .chroma import ChromaModel, ChromaRadianceModel
-from .hidream import HidreamModel, HidreamE1Model
-from .f_light import FLiteModel
-from .omnigen2 import OmniGen2Model
-from .flux_kontext import FluxKontextModel
-from .wan22 import Wan225bModel, Wan2214bModel, Wan2214bI2VModel
-from .qwen_image import QwenImageModel, QwenImageEditModel, QwenImageEditPlusModel
+# Only import the models we actually use for Klein LoRA training.
+# The full ai-toolkit __init__ imports every model (Chroma, HiDream, Wan2, etc.)
+# which drags in heavy deps (T5EncoderModel, UMT5, etc.) that we don't need.
 from .flux2 import Flux2Model, Flux2KleinModel
-from .z_image import ZImageModel
-from .ltx2 import LTX2Model
 
 AI_TOOLKIT_MODELS = [
-    # put a list of models here
-    ChromaModel,
-    ChromaRadianceModel,
-    HidreamModel,
-    HidreamE1Model,
-    FLiteModel,
-    OmniGen2Model,
-    FluxKontextModel,
-    Wan225bModel,
-    Wan2214bI2VModel,
-    Wan2214bModel,
-    QwenImageModel,
-    QwenImageEditModel,
-    QwenImageEditPlusModel,
     Flux2Model,
     Flux2KleinModel,
-    ZImageModel,
-    LTX2Model,
 ]

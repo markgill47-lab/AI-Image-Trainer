@@ -1,0 +1,82 @@
+job: extension
+config:
+  name: flux_lora_test3
+  process:
+  - type: sd_trainer
+    training_folder: ./output
+    model:
+      name_or_path: black-forest-labs/FLUX.2-klein-base-4B
+      is_flux: true
+      quantize: true
+      quantize_te: true
+      low_vram: false
+      layer_offloading: false
+      arch: flux2_klein
+      vae_path: C:\Projects\AI_Image_Trainer\models\flux2_vae\ae.safetensors
+    network:
+      type: lora
+      linear: 32
+      linear_alpha: 16
+    save:
+      dtype: bf16
+      save_every: 300
+      max_step_saves_to_keep: 3
+    datasets:
+    - folder_path: C:/Projects/AI_Image_Trainer/datasets/Necronomicon/Fixed2
+      caption_ext: txt
+      num_repeats: 10
+      cache_latents: true
+    train:
+      batch_size: 1
+      steps: 1248
+      gradient_accumulation_steps: 1
+      train_unet: true
+      train_text_encoder: false
+      learning_rate: 0.0002
+      lr_scheduler: constant
+      optimizer: adamw8bit
+      gradient_checkpointing: true
+      noise_scheduler: flowmatch
+      max_denoising_steps: 1000
+      cache_text_encoder_outputs: true
+      dtype: bf16
+      max_grad_norm: 1.0
+    sample:
+      sampler: flowmatch
+      sample_every: 100
+      width: 512
+      height: 512
+      samples:
+      - prompt: A vertical biomechanical portrait featuring a crouching alien-skeletal
+          humanoid figure rendered in warm bronze and sepia tones against a neutral
+          background. The creature has an elongated cranium with prominent curved
+          horn-like protrusions emerging from the sides of the head, resembling ram
+          horns with ribbed segmentation. The skull is smooth and pale with large
+          hollow eye sockets and exposed teeth creating a menacing expression. The
+          body combines skeletal and biomechanical elements with visible ribcage structures
+          integrated with metallic ribbed bands across the torso. The figure is positioned
+          in a symmetrical crouching pose with hands gripping a vertical cylindrical
+          mechanical element that runs centrally from top to bottom. The limbs show
+          both bone-like structure and mechanical augmentation with ribbed tubing
+          at joints. The hands and feet display elongated skeletal digits with mechanical
+          details. A ribbed tube or cable extends from the neck area. The creature
+          sits on rocky terrain with scattered stones, grounding it in a physical
+          environment. The lighting creates dramatic shadows and highlights emphasizing
+          the sculptural three-dimensional quality. The color palette of bronze, gold,
+          and sepia tones gives the image a warm, aged appearance distinct from typical
+          monochromatic biomechanical art. The overall effect combines ancient skull
+          symbolism with futuristic biomechanical design, suggesting themes of death,
+          evolution, alien biology, and the fusion of organic remains with technological
+          augmentation. The symmetrical frontal pose gives it an iconic, confrontational
+          presence.
+        neg: ''
+        seed: 42
+        walk_seed: true
+        guidance_scale: 3.5
+        sample_steps: 50
+      neg: ''
+      seed: 42
+      walk_seed: true
+      guidance_scale: 3.5
+      sample_steps: 50
+      sample_at_first: false

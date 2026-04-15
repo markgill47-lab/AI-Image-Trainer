@@ -1,0 +1,44 @@
+job: extension
+config:
+  name: flux_lora_giger
+  process:
+  - type: sd_trainer
+    training_folder: ./output
+    model:
+      name_or_path: black-forest-labs/FLUX.2-klein-base-9B
+      is_flux: true
+      quantize: true
+      quantize_te: true
+      low_vram: true
+      layer_offloading: true
+      layer_offloading_transformer_percent: 0.7
+      layer_offloading_text_encoder_percent: 0.9
+      arch: flux2_klein
+    network:
+      type: lora
+      linear: 32
+      linear_alpha: 16
+    save:
+      dtype: bf16
+      save_every: 500
+      max_step_saves_to_keep: 3
+    datasets:
+    - folder_path: C:/Projects/AI_Image_Trainer/datasets/Necronomicon
+      caption_ext: txt
+      num_repeats: 10
+    train:
+      batch_size: 1
+      steps: 2080
+      gradient_accumulation_steps: 4
+      train_unet: true
+      train_text_encoder: false
+      learning_rate: 0.0002
+      lr_scheduler: constant
+      optimizer: adamw8bit
+      gradient_checkpointing: true
+      noise_scheduler: flowmatch
+      max_denoising_steps: 1000
+      cache_latents: true
+      cache_text_encoder_outputs: true
+      dtype: bf16
+      max_grad_norm: 1.0

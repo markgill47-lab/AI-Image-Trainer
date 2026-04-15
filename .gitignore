@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+
+# Large external tool repos (cloned fresh by setup script)
+kohya_ss/
+sd-scripts/
+bfl_flux2/
+
+# ai-toolkit base repo (cloned by setup, patches applied on top)
+ai-toolkit/*
+# But DO track our local patches
+!ai-toolkit-patches/
+
+# Model files (huge, downloaded separately)
+models/
+*.safetensors
+*.ckpt
+*.pt
+*.bin
+
+# Training output
+output/
+logs/
+
+# Test artifacts
+test_*.png
+diffusion_gui_error.log
+flux_training_gui.log
+
+# Temp files from Claude sessions
+tmpclaude-*
+nul
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Old zip packages
+*.zip
+
+# User-specific config (has API keys, local paths)
+gui_config.json
+flux_gui_config.json
+
+# Windows-only scripts (not needed on Linux deployment)
+# Kept for reference but not critical

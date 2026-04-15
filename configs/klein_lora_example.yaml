@@ -1,0 +1,57 @@
+# Klein LoRA Training Configuration
+# This is a clean, simple config for the new minimal Klein trainer
+
+# Model Settings
+model_variant: "4B"  # "4B" or "9B"
+# model_path: null  # Optional: local path or HuggingFace repo (auto-downloads if not set)
+vae_path: "C:/Projects/AI_Image_Trainer/models/flux2_vae/ae.safetensors"
+
+# LoRA Settings
+lora_rank: 32
+lora_alpha: 32
+lora_dropout: 0.0
+
+# Dataset Settings
+dataset_path: "C:/Projects/AI_Image_Trainer/datasets/Necronomicon/Fixed2"
+caption_extension: ".txt"
+resolution: 512
+enable_bucket: true
+min_bucket_resolution: 256
+max_bucket_resolution: 1024
+bucket_resolution_step: 64
+
+# Training Settings
+batch_size: 1
+gradient_accumulation_steps: 1
+num_epochs: 1
+max_train_steps: 1248  # Set to null to use epochs instead
+learning_rate: 0.0002
+optimizer: "adamw8bit"  # adamw, adamw8bit, prodigy
+lr_scheduler: "constant"  # constant, cosine, linear
+warmup_steps: 0
+max_grad_norm: 1.0
+
+# Memory Optimization
+gradient_checkpointing: true
+mixed_precision: "bf16"  # fp32, fp16, bf16
+cache_latents: true
+cache_text_encoder_outputs: true
+quantize_transformer: true
+quantize_text_encoder: true
+
+# Sampling Settings
+sample_every_n_steps: 100
+sample_prompts:
+  - "A vertical biomechanical portrait featuring a crouching alien-skeletal humanoid figure rendered in warm bronze and sepia tones against a neutral background."
+sample_seed: 42
+sample_steps: 28
+sample_guidance_scale: 3.5
+
+# Save Settings
+output_dir: "./output/klein_test"
+output_name: "klein_lora"
+save_every_n_steps: 300
+save_precision: "bf16"
+
+# Logging
+log_every_n_steps: 1

@@ -1,0 +1,36 @@
+job: extension
+config:
+  name: flux_lora_mona
+  process:
+  - type: sd_trainer
+    training_folder: ./output
+    model:
+      name_or_path: black-forest-labs/FLUX.1-dev
+      is_flux: true
+      quantize: true
+    network:
+      type: lora
+      linear: 16
+      linear_alpha: 8
+    save:
+      dtype: bf16
+      save_every: 500
+      max_step_saves_to_keep: 3
+    datasets:
+    - folder_path: C:/Projects/AI_Image_Trainer/datasets/Mona
+      caption_ext: txt
+      num_repeats: 10
+    train:
+      batch_size: 1
+      steps: 1720
+      gradient_accumulation_steps: 1
+      train_unet: true
+      train_text_encoder: false
+      learning_rate: 0.0001
+      lr_scheduler: constant
+      optimizer: adamw8bit
+      gradient_checkpointing: true
+      noise_scheduler: flowmatch
+      max_denoising_steps: 1000
+      cache_latents: true
+      dtype: bf16

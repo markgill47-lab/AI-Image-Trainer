@@ -1,0 +1,42 @@
+# dataset.toml
+# Example dataset configuration for Kohya sd-scripts training
+# This file defines where your training images are and how to use them
+
+[general]
+# Training resolution (512, 768, or 1024)
+resolution = 512
+
+# Batch size (how many images processed at once)
+# Lower this if you run out of VRAM
+batch_size = 1
+
+# Main dataset definition
+[[datasets]]
+resolution = 512
+batch_size = 1
+
+  # Subset - one or more folders of images
+  [[datasets.subsets]]
+  # Path to your training images (relative or absolute)
+  image_dir = "datasets/my_dataset"
+  
+  # Number of times to repeat dataset per epoch
+  # Higher = more training on same images
+  num_repeats = 10
+  
+  # Optional: class tokens for specific concepts
+  # class_tokens = "character"
+  
+  # Optional: caption file extension (default is .txt)
+  # caption_extension = ".txt"
+
+# You can add more subsets if needed:
+# [[datasets.subsets]]
+# image_dir = "datasets/another_dataset"
+# num_repeats = 5
+
+# Notes:
+# - Each image needs a matching .txt file with the same name
+# - Example: img001.jpg needs img001.txt
+# - Caption files should describe the image
+# - Keep captions concise (1-2 sentences)

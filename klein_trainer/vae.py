@@ -442,6 +442,12 @@ class KleinVAE(nn.Module):
         if z_channels != 32:
             raise ValueError(f"Klein VAE must have 32 z_channels, found {z_channels}")
 
+        # Detect format: diffusers uses "down_blocks/up_blocks", BFL uses "down/up"
+        is_diffusers = any("down_blocks" in k or "up_blocks" in k for k in state_dict)
+        if is_diffusers:
+            print("  Detected diffusers-format VAE, converting to BFL format...")
+            state_dict = cls._convert_diffusers_to_bfl(state_dict)
+
         # Remap quant_conv/post_quant_conv keys from root level to encoder/decoder
         # The BFL weights file has these at the root level, but our model structure
         # places them inside Encoder and Decoder classes
@@ -473,6 +479,51 @@ class KleinVAE(nn.Module):
             raise ValueError("VAE BatchNorm statistics not loaded - check if bn.running_mean/var are in state dict")
 
         return model.to(dtype)
+
+    @staticmethod
+    def _convert_diffusers_to_bfl(sd: dict) -> dict:
+        """Convert diffusers-format VAE state dict to BFL format."""
+        import re
+        new_sd = {}
+        for key, val in sd.items():
+            new_key = key
+
+            # --- Encoder ---
+            # down_blocks.{i}.resnets.{j} → down.{i}.block.{j}
+            new_key = re.sub(r'encoder\.down_blocks\.(\d+)\.resnets\.(\d+)',
+                             r'encoder.down.\1.block.\2', new_key)
+            # down_blocks.{i}.downsamplers.0.conv → down.{i}.downsample.conv
+            new_key = re.sub(r'encoder\.down_blocks\.(\d+)\.downsamplers\.0\.conv',
+                             r'encoder.down.\1.downsample.conv', new_key)
+            # mid_block.resnets.{j} → mid.block_{j+1}
+            new_key = re.sub(r'encoder\.mid_block\.resnets\.(\d+)',
+                             lambda m: f'encoder.mid.block_{int(m.group(1))+1}', new_key)
+
+            # --- Decoder ---
+            # up_blocks.{i}.resnets.{j} → up.{i}.block.{j}
+            new_key = re.sub(r'decoder\.up_blocks\.(\d+)\.resnets\.(\d+)',
+                             r'decoder.up.\1.block.\2', new_key)
+            # up_blocks.{i}.upsamplers.0.conv → up.{i}.upsample.conv
+            new_key = re.sub(r'decoder\.up_blocks\.(\d+)\.upsamplers\.0\.conv',
+                             r'decoder.up.\1.upsample.conv', new_key)
+            # mid_block.resnets.{j} → mid.block_{j+1}
+            new_key = re.sub(r'decoder\.mid_block\.resnets\.(\d+)',
+                             lambda m: f'decoder.mid.block_{int(m.group(1))+1}', new_key)
+
+            # --- Both encoder and decoder ---
+            # conv_shortcut → nin_shortcut
+            new_key = new_key.replace('.conv_shortcut.', '.nin_shortcut.')
+            # conv_norm_out → norm_out
+            new_key = new_key.replace('conv_norm_out', 'norm_out')
+            # Attention: mid_block.attentions.0 → mid.attn_1
+            new_key = new_key.replace('mid_block.attentions.0.group_norm', 'mid.attn_1.norm')
+            new_key = new_key.replace('mid_block.attentions.0.to_q', 'mid.attn_1.q')
+            new_key = new_key.replace('mid_block.attentions.0.to_k', 'mid.attn_1.k')
+            new_key = new_key.replace('mid_block.attentions.0.to_v', 'mid.attn_1.v')
+            new_key = new_key.replace('mid_block.attentions.0.to_out.0', 'mid.attn_1.proj_out')
+
+            new_sd[new_key] = val
+        return new_sd
 
 
 def encode_images(vae: KleinVAE, images: Tensor, device: torch.device, dtype: torch.dtype) -> Tensor:

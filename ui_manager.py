@@ -39,15 +39,15 @@ from kohya_presets import TRAINING_PRESETS, get_preset, apply_preset_to_config
 from flux_presets import FLUX_PRESETS, MODEL_OPTIONS, get_all_presets, get_presets_for_model
 from gui_config_manager import GUIConfigManager
 
-# Import dataset_manager package (handle path issues on Windows)
+# Import dataset_Manager package (case-sensitive on Linux!)
 import importlib.util
-_dm_init = os.path.join(_script_dir, 'dataset_manager', '__init__.py')
+_dm_init = os.path.join(_script_dir, 'dataset_Manager', '__init__.py')
 _dm_spec = importlib.util.spec_from_file_location(
-    'dataset_manager', _dm_init,
-    submodule_search_locations=[os.path.join(_script_dir, 'dataset_manager')]
+    'dataset_Manager', _dm_init,
+    submodule_search_locations=[os.path.join(_script_dir, 'dataset_Manager')]
 )
 _dataset_manager = importlib.util.module_from_spec(_dm_spec)
-sys.modules['dataset_manager'] = _dataset_manager
+sys.modules['dataset_Manager'] = _dataset_manager
 _dm_spec.loader.exec_module(_dataset_manager)
 EmbeddedDatasetManager = _dataset_manager.EmbeddedDatasetManager
 

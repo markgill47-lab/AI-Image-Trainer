@@ -50,6 +50,9 @@ toml>=0.10.2
 huggingface-hub>=0.20.0
 tokenizers>=0.15.0
 
+# Video/media (required by ai-toolkit import chain)
+av>=12.0.0
+
 # Optional but recommended
 wandb>=0.16.0
 tensorboard>=2.15.0

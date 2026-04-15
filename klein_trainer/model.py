@@ -12,17 +12,46 @@ from pathlib import Path
 import huggingface_hub
 from safetensors.torch import load_file
 
-# Add ai-toolkit to path for Flux2Klein imports
+# Add ai-toolkit source paths for Klein architecture imports.
+# We specifically add the flux2/src directory so model_klein.py can use
+# its relative imports (from .model import ...) without triggering the
+# full ai-toolkit __init__ chain, which drags in T5EncoderModel,
+# Mistral3ForConditionalGeneration, and other heavy deps we don't need.
 AI_TOOLKIT_PATH = Path(__file__).parent.parent / "ai-toolkit"
-if str(AI_TOOLKIT_PATH) not in sys.path:
-    sys.path.insert(0, str(AI_TOOLKIT_PATH))
+_flux2_src = AI_TOOLKIT_PATH / "extensions_built_in" / "diffusion_models" / "flux2" / "src"
 
-# Import Klein model architecture from ai-toolkit
-from extensions_built_in.diffusion_models.flux2.src.model_klein import (
-    Flux2Klein,
-    Flux2KleinParams,
-    Flux2Klein4BParams,
-)
+# Ensure the src directory is importable as a package
+_src_init = _flux2_src / "__init__.py"
+if not _src_init.exists():
+    _src_init.touch()
+
+# Register as a proper package so relative imports work
+import importlib
+if "flux2_src" not in sys.modules:
+    _flux2_src_str = str(_flux2_src)
+    if _flux2_src_str not in sys.path:
+        sys.path.insert(0, _flux2_src_str)
+    # Import the base model first (model_klein does `from .model import ...`)
+    import importlib.util
+    _spec = importlib.util.spec_from_file_location(
+        "flux2_src", str(_src_init),
+        submodule_search_locations=[_flux2_src_str]
+    )
+    _pkg = importlib.util.module_from_spec(_spec)
+    sys.modules["flux2_src"] = _pkg
+
+    for _name in ("model", "model_klein"):
+        _mod_spec = importlib.util.spec_from_file_location(
+            f"flux2_src.{_name}",
+            str(_flux2_src / f"{_name}.py"),
+            submodule_search_locations=[]
+        )
+        _mod = importlib.util.module_from_spec(_mod_spec)
+        sys.modules[f"flux2_src.{_name}"] = _mod
+        _mod_spec.loader.exec_module(_mod)
+        setattr(_pkg, _name, _mod)
+
+from flux2_src.model_klein import Flux2Klein, Flux2KleinParams, Flux2Klein4BParams
 
 # Klein architecture specs (for reference)
 KLEIN_CONFIGS = {

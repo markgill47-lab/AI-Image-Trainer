@@ -17,12 +17,26 @@ import math
 import json
 from datetime import datetime
 
-# Add ai-toolkit to path for sampling utilities
-AI_TOOLKIT_PATH = Path(__file__).parent.parent / "ai-toolkit"
-if str(AI_TOOLKIT_PATH) not in sys.path:
-    sys.path.insert(0, str(AI_TOOLKIT_PATH))
+# Import sampling utilities via the isolated flux2_src package.
+# We must import model.py first (it sets up flux2_src), then register
+# sampling.py into the same package so its relative imports work.
+from .model import Flux2Klein  # noqa: F401 — triggers flux2_src setup
 
-from extensions_built_in.diffusion_models.flux2.src.sampling import (
+import importlib.util as _ilu
+_AI_TOOLKIT_PATH = Path(__file__).parent.parent / "ai-toolkit"
+_sampling_path = _AI_TOOLKIT_PATH / "extensions_built_in" / "diffusion_models" / "flux2" / "src" / "sampling.py"
+
+if "flux2_src.sampling" not in sys.modules:
+    _spec = _ilu.spec_from_file_location(
+        "flux2_src.sampling",
+        str(_sampling_path),
+        submodule_search_locations=[]
+    )
+    _mod = _ilu.module_from_spec(_spec)
+    sys.modules["flux2_src.sampling"] = _mod
+    _spec.loader.exec_module(_mod)
+
+from flux2_src.sampling import (
     batched_prc_img,
     batched_prc_txt,
     get_schedule,

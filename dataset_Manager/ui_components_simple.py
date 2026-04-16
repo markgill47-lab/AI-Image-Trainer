@@ -7,7 +7,7 @@ No tagging system - just straightforward description text editing with copy/past
 from PyQt6.QtWidgets import (
     QWidget, QPushButton, QLabel, QLineEdit, QHBoxLayout, QVBoxLayout,
     QTableWidget, QTableWidgetItem, QSplitter, QTextEdit, QHeaderView,
-    QGroupBox, QFrame, QRadioButton, QButtonGroup, QCheckBox
+    QGroupBox, QFrame, QRadioButton, QButtonGroup, QCheckBox, QSizePolicy
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QColor
@@ -106,7 +106,12 @@ class GalleryTab(QWidget):
         
         self.image_label = QLabel()
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.image_label.setMinimumHeight(300)
+        self.image_label.setMinimumHeight(200)
+        self.image_label.setMaximumHeight(400)
+        self.image_label.setScaledContents(False)
+        self.image_label.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Ignored
+        )
         self.image_label.setStyleSheet("QLabel { color: #999; }")
         self.image_label.setText("No image selected")
         image_layout.addWidget(self.image_label)

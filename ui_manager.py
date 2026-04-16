@@ -143,9 +143,9 @@ class UIManager(QMainWindow):
         """Load application configuration"""
         default_config = {
             'window_width': 1200,
-            'window_height': 900,
+            'window_height': 800,
             'window_x': 100,
-            'window_y': 100,
+            'window_y': 50,
             'config_file': 'training_config.toml',
             'dataset_config_file': 'dataset.toml',
             'dataset_dir': '',
@@ -186,11 +186,25 @@ class UIManager(QMainWindow):
             logger.error(f"Error saving app config: {e}")
     
     def restore_window_geometry(self):
-        """Restore window size and position"""
+        """Restore window size and position, clamped to screen"""
         width = self.app_config.get('window_width', 1200)
-        height = self.app_config.get('window_height', 900)
+        height = self.app_config.get('window_height', 800)
         x = self.app_config.get('window_x', 100)
-        y = self.app_config.get('window_y', 100)
+        y = self.app_config.get('window_y', 50)
+
+        # Clamp to available screen size so the window is fully visible
+        try:
+            from PyQt6.QtWidgets import QApplication
+            screen = QApplication.primaryScreen()
+            if screen:
+                avail = screen.availableGeometry()
+                width = min(width, avail.width() - 40)
+                height = min(height, avail.height() - 40)
+                x = max(avail.x(), min(x, avail.x() + avail.width() - width))
+                y = max(avail.y(), min(y, avail.y() + avail.height() - height))
+        except Exception:
+            pass
+
         self.setGeometry(x, y, width, height)
     
     def closeEvent(self, event):

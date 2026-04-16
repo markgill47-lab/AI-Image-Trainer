@@ -127,9 +127,13 @@ class EventHandlers:
         try:
             pixmap = QPixmap(img_data['path'])
             if not pixmap.isNull():
-                # Scale to fit label while maintaining aspect ratio
+                # Scale to a fixed max size to prevent the label from growing unbounded.
+                # Using a capped QSize avoids the feedback loop where setPixmap enlarges
+                # the label, which then enlarges the next scaled pixmap, etc.
+                from PyQt6.QtCore import QSize
+                max_preview = QSize(600, 400)
                 scaled_pixmap = pixmap.scaled(
-                    self.app.gallery_tab.image_label.size(),
+                    max_preview,
                     Qt.AspectRatioMode.KeepAspectRatio,
                     Qt.TransformationMode.SmoothTransformation
                 )

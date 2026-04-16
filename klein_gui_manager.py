@@ -101,17 +101,24 @@ class KleinGUIManager:
         # --- Transformer path resolution ---
         transformer_path = paths_config.get('transformer_path', '') or None
         if not transformer_path and comfyui_base:
-            # Search ComfyUI unet directory for Klein files matching variant
+            # Search ComfyUI model directories for Klein files matching variant
+            # ComfyUI uses either unet/ or diffusion_models/ depending on version
             import glob
-            unet_dir = os.path.join(comfyui_base, 'unet')
-            if os.path.isdir(unet_dir):
-                variant_lower = model_variant.lower()
+            variant_lower = model_variant.lower()
+            for subdir in ['unet', 'diffusion_models']:
+                model_dir = os.path.join(comfyui_base, subdir)
+                if not os.path.isdir(model_dir):
+                    continue
                 for pattern in [f'*klein*{variant_lower}*', f'*klein*{model_variant}*']:
-                    matches = glob.glob(os.path.join(unet_dir, pattern))
+                    matches = glob.glob(os.path.join(model_dir, pattern))
+                    # Prefer non-fp8 full-precision files for training
+                    matches.sort(key=lambda p: ('fp8' in p.lower(), p))
                     if matches:
                         transformer_path = matches[0]
-                        logger.info(f"Found transformer in ComfyUI: {transformer_path}")
+                        logger.info(f"Found transformer in ComfyUI {subdir}/: {transformer_path}")
                         break
+                if transformer_path:
+                    break
         if transformer_path:
             logger.info(f"Using transformer: {transformer_path}")
         else:

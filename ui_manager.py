@@ -1118,19 +1118,26 @@ class UIManager(QMainWindow):
         model_key = self.model_combo.itemData(self.model_combo.currentIndex())
         variant = '4b' if '4b' in (model_key or '').lower() else '9b'
 
-        unet_dir = os.path.join(base, 'unet')
-        if os.path.isdir(unet_dir):
+        # Search both unet/ and diffusion_models/ (ComfyUI uses either)
+        transformer_found = False
+        for subdir in ['unet', 'diffusion_models']:
+            model_dir = os.path.join(base, subdir)
+            if not os.path.isdir(model_dir):
+                continue
             for pattern in [f'*klein*{variant}*', f'*klein*{variant.upper()}*']:
-                matches = glob.glob(os.path.join(unet_dir, pattern))
+                matches = glob.glob(os.path.join(model_dir, pattern))
+                # Prefer non-fp8 full-precision files for training
+                matches.sort(key=lambda p: ('fp8' in p.lower(), p))
                 if matches:
                     self.transformer_path_entry.setText(matches[0])
                     self.gui_config.set('paths.transformer_path', matches[0])
-                    found.append(f"Transformer: {os.path.basename(matches[0])}")
+                    found.append(f"Transformer: {os.path.basename(matches[0])} (in {subdir}/)")
+                    transformer_found = True
                     break
-            else:
-                found.append("Transformer: not found in unet/")
-        else:
-            found.append("Transformer: unet/ dir not found")
+            if transformer_found:
+                break
+        if not transformer_found:
+            found.append("Transformer: not found in unet/ or diffusion_models/")
 
         # Detect VAE
         vae_dir = os.path.join(base, 'vae')

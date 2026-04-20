@@ -361,8 +361,21 @@ class UIManager(QMainWindow):
     
     def setup_config_tab(self):
         """Create configuration tab with epochs-based training"""
-        layout = QVBoxLayout(self.config_tab)
-        
+        # Wrap in a scroll area so it fits on 1080p screens
+        from PyQt6.QtWidgets import QScrollArea
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        content_widget = QWidget()
+        layout = QVBoxLayout(content_widget)
+        layout.setSpacing(6)
+        layout.setContentsMargins(6, 6, 6, 6)
+        scroll.setWidget(content_widget)
+
+        tab_layout = QVBoxLayout(self.config_tab)
+        tab_layout.setContentsMargins(0, 0, 0, 0)
+        tab_layout.addWidget(scroll)
+
         # Model Selection group
         model_group = QGroupBox("Model Selection")
         model_layout = QVBoxLayout(model_group)
@@ -456,33 +469,21 @@ class UIManager(QMainWindow):
 
         layout.addWidget(paths_group)
 
-        # Preset selector
-        preset_group = QGroupBox("Training Presets (Optional)")
-        preset_layout = QVBoxLayout(preset_group)
-        
-        preset_info_label = QLabel("Presets apply recommended settings. You can customize below.")
-        preset_info_label.setStyleSheet("color: gray; font-style: italic;")
-        preset_layout.addWidget(preset_info_label)
-        
-        preset_select_layout = QHBoxLayout()
-        preset_select_layout.addWidget(QLabel("Select Preset:"))
-        
+        # Preset selector (inline, no group box — saves vertical space)
+        preset_layout = QHBoxLayout()
+        preset_layout.addWidget(QLabel("Preset:"))
         self.preset_combo = QComboBox()
         self.preset_combo.addItem("-- Custom Settings --")
         for preset_name, preset_data in TRAINING_PRESETS.items():
             display_name = preset_data['name']
             self.preset_combo.addItem(display_name, preset_name)
         self.preset_combo.currentIndexChanged.connect(self.on_preset_selected)
-        preset_select_layout.addWidget(self.preset_combo)
-        
-        preset_layout.addLayout(preset_select_layout)
-        
-        # Preset description
+        preset_layout.addWidget(self.preset_combo, stretch=1)
         self.preset_description = QLabel("")
+        self.preset_description.setStyleSheet("color: gray; font-size: 9pt;")
         self.preset_description.setWordWrap(True)
-        preset_layout.addWidget(self.preset_description)
-        
-        layout.addWidget(preset_group)
+        preset_layout.addWidget(self.preset_description, stretch=2)
+        layout.addLayout(preset_layout)
         
         # Training Duration group (epochs-based)
         duration_group = QGroupBox("Training Duration")
@@ -645,7 +646,7 @@ class UIManager(QMainWindow):
         self.sample_prompt_text = QTextEdit()
         self.sample_prompt_text.setPlainText(self.gui_config.get('sampling.prompt', ''))
         self.sample_prompt_text.setPlaceholderText("Enter a prompt to generate samples during training (e.g., 'a photo of TOK person')")
-        self.sample_prompt_text.setMaximumHeight(100)
+        self.sample_prompt_text.setMaximumHeight(60)
         self.sample_prompt_text.setToolTip("Prompt used to generate preview images. Use your trigger word if applicable.")
         self.sample_prompt_text.textChanged.connect(self.on_training_param_changed)
         sample_layout.addWidget(self.sample_prompt_text, row, 1, 1, 2)

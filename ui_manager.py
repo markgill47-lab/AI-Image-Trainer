@@ -21,7 +21,7 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QGridLayout, QTabWidget, QLabel, QPushButton, QLineEdit,
     QTextEdit, QComboBox, QFileDialog, QMessageBox, QDialog,
-    QGroupBox, QSpinBox, QDoubleSpinBox, QProgressBar, QCheckBox
+    QGroupBox, QSpinBox, QDoubleSpinBox, QProgressBar, QCheckBox, QFrame
 )
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QObject
 from PyQt6.QtGui import QFont, QPixmap

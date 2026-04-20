@@ -355,6 +355,16 @@ class TrainingAnalytics:
             StepMetrics with computed analytics
         """
         with self._lock:
+            # Fresh run detection: if step 1 is recorded but we have old data,
+            # this is a new training run reusing the same output name.
+            # Clear stale per-sample data so outlier detection uses current dataset.
+            if step == 1 and self.last_step > 0:
+                print("Analytics: New training run detected, clearing stale per-sample data")
+                self.outlier_detector.reset()
+                # Truncate per-sample file
+                if self.per_sample_file.exists():
+                    self.per_sample_file.unlink()
+
             # Skip if already recorded (resume case)
             if step <= self.last_step:
                 if self.metrics_history:

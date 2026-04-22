@@ -72,6 +72,7 @@ class GUIConfigManager:
                 'lora_rank': 16,
                 'lora_alpha': 8,
                 'save_every_n_steps': 500,
+                'lr_scheduler': 'cosine',  # safer default — prevents divergence
             },
             
             # Paths
@@ -289,6 +290,8 @@ class GUIConfigManager:
                                          self.get('training.lora_alpha'))
         training_config_manager.set_value('save_every_n_steps',
                                          self.get('training.save_every_n_steps'))
+        training_config_manager.set_value('lr_scheduler',
+                                         self.get('training.lr_scheduler', 'cosine'))
         training_config_manager.set_value('output_name',
                                          self.get('paths.output_name'))
         training_config_manager.set_value('output_dir',

@@ -611,7 +611,27 @@ class UIManager(QMainWindow):
         self.save_every_spinbox.valueChanged.connect(self.on_training_param_changed)
         params_layout.addWidget(self.save_every_spinbox, row, 1)
         row += 1
-        
+
+        # LR Scheduler
+        params_layout.addWidget(QLabel("LR Scheduler:"), row, 0)
+        self.lr_scheduler_combo = QComboBox()
+        self.lr_scheduler_combo.addItems(['cosine', 'constant', 'linear'])
+        saved_scheduler = self.gui_config.get('training.lr_scheduler', 'cosine')
+        idx = self.lr_scheduler_combo.findText(saved_scheduler)
+        if idx >= 0:
+            self.lr_scheduler_combo.setCurrentIndex(idx)
+        self.lr_scheduler_combo.setToolTip(
+            "cosine: LR decays to ~0 over training — prevents LoRA divergence (recommended)\n"
+            "constant: LR stays at set value — can cause divergence on long runs with high rank\n"
+            "linear: LR decays linearly to 0"
+        )
+        self.lr_scheduler_combo.currentTextChanged.connect(self.on_training_param_changed)
+        params_layout.addWidget(self.lr_scheduler_combo, row, 1)
+        scheduler_help = QLabel("(cosine = safe; constant can diverge on long runs)")
+        scheduler_help.setStyleSheet("color: gray; font-size: 9pt;")
+        params_layout.addWidget(scheduler_help, row, 2)
+        row += 1
+
         layout.addWidget(params_group)
         
         # Output group
@@ -1266,6 +1286,13 @@ class UIManager(QMainWindow):
         self.output_name_entry.setText(self.config_manager.get_value('output_name', 'flux_lora'))
         self.output_dir_entry.setText(self.config_manager.get_value('output_dir', './output'))
 
+        # Update LR scheduler dropdown from config (presets set this)
+        if hasattr(self, 'lr_scheduler_combo'):
+            scheduler = self.config_manager.get_value('lr_scheduler', 'cosine')
+            idx = self.lr_scheduler_combo.findText(scheduler)
+            if idx >= 0:
+                self.lr_scheduler_combo.setCurrentIndex(idx)
+
         # Re-scan dataset folder if it exists (refresh image/caption counts)
         if hasattr(self, 'dataset_dir_entry'):
             dataset_dir = self.dataset_dir_entry.text()
@@ -1289,6 +1316,11 @@ class UIManager(QMainWindow):
         self.config_manager.set_value('network_alpha', self.alpha_spinbox.value())
         self.config_manager.set_value('output_name', self.output_name_entry.text())
         self.config_manager.set_value('output_dir', self.output_dir_entry.text())
+
+        # Save LR scheduler
+        if hasattr(self, 'lr_scheduler_combo'):
+            self.gui_config.set('training.lr_scheduler', self.lr_scheduler_combo.currentText(), auto_save=False)
+            self.config_manager.set_value('lr_scheduler', self.lr_scheduler_combo.currentText())
 
         # Save model path settings
         self.gui_config.set('paths.comfyui_models_path', self.comfyui_base_entry.text().strip(), auto_save=False)
@@ -1386,6 +1418,8 @@ class UIManager(QMainWindow):
         self.gui_config.set('training.lora_rank', self.dim_spinbox.value())
         self.gui_config.set('training.lora_alpha', self.alpha_spinbox.value())
         self.gui_config.set('training.save_every_n_steps', self.save_every_spinbox.value())
+        if hasattr(self, 'lr_scheduler_combo'):
+            self.gui_config.set('training.lr_scheduler', self.lr_scheduler_combo.currentText())
         self.gui_config.set('paths.output_name', self.output_name_entry.text())
 
         # Save sampling config

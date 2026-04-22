@@ -14,33 +14,48 @@ A PyQt6-based GUI application for training LoRA (Low-Rank Adaptation) models on 
 ## Requirements
 
 ### Hardware
-- NVIDIA GPU with 16GB+ VRAM (RTX 4090, RTX 3090, etc.)
-- For Klein 4B: 16GB VRAM sufficient
-- For Klein 9B: 24GB+ VRAM recommended
+- NVIDIA GPU with 16GB+ VRAM
+- Klein 4B: 16GB VRAM sufficient (RTX 3090, 4070, etc.)
+- Klein 9B: 24GB VRAM (RTX 4090, RTX PRO 4000 Blackwell, etc.)
+- **Ampere / Ada Lovelace / Blackwell** architectures. Blackwell (sm_120) requires PyTorch 2.6+ with CUDA 12.6+.
 
 ### Software
 - Python 3.10+
-- CUDA 11.8 or 12.x
-- Windows 10/11 (primary platform)
+- CUDA 12.1+ (12.6+ for Blackwell GPUs)
+- Linux (Ubuntu 22.04+) or Windows 10/11
 
 ### Python Dependencies
-```
-torch>=2.0
-PyQt6>=6.4
-transformers
-safetensors
-pillow
-einops
-optimum-quanto
-bitsandbytes (optional, for 8-bit optimizer)
-```
+Full list in `requirements.txt`. Key packages:
+- `torch`, `torchvision`, `torchaudio` (matched CUDA versions)
+- `PyQt6` — GUI
+- `transformers`, `safetensors`, `huggingface-hub` — model loading
+- `optimum-quanto` — INT8 quantization (required for 9B to fit in 24GB)
+- `einops`, `pillow`, `opencv-python` — data
+- `anthropic` — optional, for Claude-assisted captioning
 
 ## Installation
 
+### Linux (Olympus lab machines)
+
+One-shot install:
+```bash
+curl -fsSL https://raw.githubusercontent.com/markgill47-lab/AI-Image-Trainer/master/install_olympus.sh | bash
+```
+
+This clones the repo, installs PyTorch + CUDA 12.6, clones ai-toolkit, applies the Klein patches, and creates a launcher at `~/AI-Image-Trainer/start_gui.sh`.
+
+For Blackwell GPUs (RTX PRO 4000 Blackwell, etc.) you may need to upgrade torch after install:
+```bash
+cd ~/AI-Image-Trainer && source .venv/bin/activate
+pip install --force-reinstall torch torchvision torchaudio
+```
+
+### Windows (development)
+
 1. **Clone the repository**
    ```cmd
-   git clone <repository-url>
-   cd AI_Image_Trainer
+   git clone https://github.com/markgill47-lab/AI-Image-Trainer.git
+   cd AI-Image-Trainer
    ```
 
 2. **Create virtual environment**
@@ -51,12 +66,17 @@ bitsandbytes (optional, for 8-bit optimizer)
 
 3. **Install dependencies**
    ```cmd
-   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
-   pip install PyQt6 transformers safetensors pillow einops tqdm matplotlib
-   pip install optimum-quanto
+   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+   pip install -r requirements.txt
    ```
 
-4. **Run the application**
+4. **Clone ai-toolkit and apply patches**
+   ```cmd
+   git clone https://github.com/ostris/ai-toolkit.git
+   xcopy /E /Y ai-toolkit-patches\* ai-toolkit\
+   ```
+
+5. **Run the application**
    ```cmd
    python main.py
    ```
@@ -69,25 +89,32 @@ AI_Image_Trainer/
 ├── ui_manager.py              # Main GUI window
 ├── klein_gui_manager.py       # Klein training GUI integration
 ├── gui_config_manager.py      # GUI configuration persistence
+├── enhanced_training_manager.py  # Backend router (Klein/kohya/aitoolkit)
 │
 ├── klein_trainer/             # Klein LoRA training module
-│   ├── __init__.py
-│   ├── config.py              # Training configuration
-│   ├── dataset.py             # Dataset loading and caching
-│   ├── model.py               # Klein model loading
-│   ├── vae.py                 # VAE encode/decode
-│   ├── lora.py                # LoRA implementation
-│   ├── trainer.py             # Training loop
-│   └── manager.py             # Training process management
+│   ├── config.py              # KleinConfig dataclass
+│   ├── dataset.py             # Dataset loading, bucketing, caching
+│   ├── model.py               # Klein transformer + text encoder loading
+│   ├── vae.py                 # 32-channel BFL VAE (auto-converts diffusers format)
+│   ├── lora.py                # LoRA injection + ComfyUI-compatible save
+│   ├── trainer.py             # Flow matching training loop
+│   ├── manager.py             # Threaded training orchestration
+│   └── analytics.py           # Per-sample loss tracking, outlier detection
 │
-├── dataset_manager/           # Dataset preparation tools
+├── dataset_Manager/           # GUI dataset tools (note capital M)
 │   ├── embedded_dataset_manager.py
-│   ├── image_processor.py     # Resize, rename utilities
+│   ├── image_processor.py     # Resize, rename, caption utilities
 │   └── ...
 │
-├── ai-toolkit/                # External: Klein model architecture
-├── datasets/                  # Training datasets
-└── output/                    # Training output (LoRAs, samples)
+├── ai-toolkit-patches/        # Local patches applied to ai-toolkit base
+│   └── extensions_built_in/diffusion_models/flux2/...  # Klein model arch
+│
+├── setup_olympus.sh           # Linux setup (venv, deps, ai-toolkit clone)
+├── install_olympus.sh         # One-shot remote installer (curl | bash)
+├── start_gui.sh / start_gui.bat  # Launchers
+├── ai-toolkit/                # (gitignored) cloned by setup, patches applied
+├── datasets/                  # (gitignored) training data
+└── output/                    # (gitignored) LoRAs, samples, analytics
 ```
 
 ## Usage
@@ -95,25 +122,40 @@ AI_Image_Trainer/
 ### Quick Start
 
 1. **Prepare your dataset**
-   - Create a folder with training images (`.jpg`, `.png`)
-   - Add caption files with the same name (`.txt`)
+   - Folder with training images (`.jpg`, `.png`, `.jpeg`)
+   - Matching caption files (`.txt`) with the same base filename
    - Example: `image001.jpg` + `image001.txt`
+   - Use the built-in Dataset Manager tab to resize, rename, and auto-caption
 
 2. **Launch the GUI**
-   ```cmd
-   python main.py
+   ```bash
+   ./start_gui.sh    # Linux
+   start_gui.bat     # Windows
    ```
 
 3. **Configure training**
    - Select Klein 4B or 9B model
+   - Set ComfyUI Models Base (auto-detects transformer + VAE from your existing ComfyUI install) OR manually browse to model files
    - Set dataset path
-   - Adjust learning rate, steps, LoRA rank
+   - Adjust epochs, samples-per-image, LoRA rank
    - Add sample prompts for preview generation
 
 4. **Start training**
    - Click "Start Training"
-   - Monitor loss and sample images
-   - LoRA saved to output folder
+   - Monitor loss, EMA trends, and sample images in the Performance tab
+   - LoRA and checkpoints saved to `output/<output_name>/`
+
+### Using Existing ComfyUI Models
+
+The trainer can reuse model files from a ComfyUI installation — no need to re-download:
+
+- **Transformer** (`flux-2-klein-base-9b.safetensors`) from `ComfyUI/models/unet/` or `ComfyUI/models/diffusion_models/`
+- **VAE** (`flux2-vae.safetensors`, in diffusers format) from `ComfyUI/models/vae/` — auto-converted to BFL format on load
+- **Text encoder** downloads from HuggingFace on first run (~8-10GB, cached in `~/.cache/huggingface/`)
+
+Set the ComfyUI base path in the Config tab and click "Auto-detect from ComfyUI".
+
+**Note:** If ComfyUI is running on the same machine, stop it before training — it holds VRAM that Klein 9B training needs.
 
 ### Training Parameters
 
@@ -159,25 +201,32 @@ datasets/my_style/
 ## Troubleshooting
 
 ### Out of Memory (OOM)
-- Use Klein 4B instead of 9B
+- Stop any running ComfyUI / other GPU processes before training (`nvidia-smi` to check)
+- Make sure `optimum-quanto` is installed (`pip install optimum-quanto`) — without it, the 9B model won't fit in 24GB
+- Use Klein 4B instead of 9B if you only have 16GB
 - Reduce LoRA rank (16 or 8)
-- Enable gradient checkpointing (default)
 - Reduce resolution to 512
 
 ### Training Too Slow
 - Ensure CUDA is available: `python -c "import torch; print(torch.cuda.is_available())"`
-- Check latent caching is enabled
-- Verify gradient checkpointing is working
-
-### LoRA Not Loading in ComfyUI
-- Ensure you're using Klein model (not regular Flux)
-- Check ComfyUI has Klein support/nodes installed
-- Verify LoRA file is in correct folder
+- Check latent caching is enabled in config
+- On Blackwell GPUs, make sure you have torch 2.6+ with CUDA 12.6+ (cu121 builds don't support sm_120)
 
 ### GUI Won't Start
-- Check Python environment is activated
-- Verify PyQt6 is installed: `pip install PyQt6`
-- Run from command line to see errors: `python main.py`
+- Activate the venv first: `source .venv/bin/activate` (Linux) or `.venv\Scripts\activate` (Windows)
+- On Linux, install PyQt6 system deps: `sudo apt install libxcb-xinerama0 libxcb-cursor0 libgl1 libegl1`
+- Run `python main.py` directly to see the full traceback
+
+### "Could not import module 'T5EncoderModel'"
+- Usually means torch/torchvision versions are mismatched. Reinstall matched versions:
+  `pip install --force-reinstall torch torchvision torchaudio`
+
+### Outlier filenames don't match current dataset
+- Previous runs with the same output name left stale analytics. Either change the output name, or delete `output/<name>/per_sample_losses.jsonl`. The trainer now auto-clears this when it detects a fresh run.
+
+### LoRA Not Loading in ComfyUI
+- Klein LoRAs only work with Klein models, not regular FLUX.1
+- Copy the `.safetensors` from `output/<name>/` to `ComfyUI/models/loras/`
 
 ## Architecture
 

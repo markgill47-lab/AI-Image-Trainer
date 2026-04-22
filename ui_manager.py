@@ -929,6 +929,27 @@ class UIManager(QMainWindow):
         self.avg_loss_label.setStyleSheet("font-weight: bold; font-size: 12pt;")
         metrics_layout.addWidget(self.avg_loss_label, 1, 5)
 
+        # Row 2: EMA progress (the actual signal — prominent display)
+        ema_info_label = QLabel("<b>EMA-100 Progress:</b>")
+        ema_info_label.setStyleSheet("font-size: 13pt; color: #333;")
+        metrics_layout.addWidget(ema_info_label, 2, 0, 1, 2)
+
+        self.ema_progress_label = QLabel("waiting for 100+ steps...")
+        self.ema_progress_label.setStyleSheet(
+            "font-weight: bold; font-size: 16pt; color: #666;"
+        )
+        metrics_layout.addWidget(self.ema_progress_label, 2, 2, 1, 4)
+
+        # Row 3: Guidance text (always visible)
+        guidance = QLabel(
+            "<i>Flow-matching raw loss oscillates naturally (0.3–1.8 range). "
+            "Read the <b>EMA-100 line</b> on the chart, not the raw values. "
+            "A 20%+ drop in EMA-100 from the starting value = real learning.</i>"
+        )
+        guidance.setStyleSheet("color: #555; font-size: 10pt; padding: 4px;")
+        guidance.setWordWrap(True)
+        metrics_layout.addWidget(guidance, 3, 0, 1, 7)
+
         layout.addWidget(metrics_group)
 
         # Placeholder labels for removed widgets (to avoid errors in update methods)
@@ -1982,12 +2003,15 @@ class UIManager(QMainWindow):
 
         self.performance_ax.clear()
 
-        # Plot raw loss line (thinner, semi-transparent)
-        self.performance_ax.plot(steps, losses, 'b-', linewidth=1, alpha=0.4, label='Loss')
+        # Plot raw loss line (very transparent — it oscillates wildly in flow matching
+        # and users should read the EMA curves instead, not the raw noise)
+        self.performance_ax.plot(steps, losses, color='#7799cc', linewidth=0.6, alpha=0.25, label='Raw loss (noisy)')
 
         # Try to get EMA data from analytics (Klein backend)
         ema_plotted = False
         trend_info = {"status": "unknown"}
+        ema_100_first = None
+        ema_100_last = None
 
         if hasattr(self.training_manager, 'active_backend') and self.training_manager.active_backend == 'klein':
             klein_mgr = getattr(self.training_manager, 'klein_manager', None)
@@ -1997,21 +2021,59 @@ class UIManager(QMainWindow):
                 ema_50 = klein_mgr.get_ema_series(50)
                 ema_100 = klein_mgr.get_ema_series(100)
 
+                # EMA-10: thin, green, for short-term noise filtering
                 if ema_10 and len(ema_10) > 5:
                     s, v = zip(*ema_10)
-                    self.performance_ax.plot(s, v, 'g-', linewidth=2, alpha=0.8, label='EMA-10')
+                    self.performance_ax.plot(s, v, color='#44aa44', linewidth=1.0, alpha=0.5, label='EMA-10')
                     ema_plotted = True
 
+                # EMA-50: medium, orange, shows medium-term trend
                 if ema_50 and len(ema_50) > 20:
                     s, v = zip(*ema_50)
-                    self.performance_ax.plot(s, v, color='orange', linewidth=2, alpha=0.8, label='EMA-50')
+                    self.performance_ax.plot(s, v, color='#ee8822', linewidth=1.5, alpha=0.75, label='EMA-50')
 
+                # EMA-100: THICK, red, the signal users should actually follow
                 if ema_100 and len(ema_100) > 50:
                     s, v = zip(*ema_100)
-                    self.performance_ax.plot(s, v, 'r-', linewidth=2, alpha=0.8, label='EMA-100')
+                    self.performance_ax.plot(s, v, color='#cc2222', linewidth=3.0, alpha=1.0, label='EMA-100 (read this!)')
+                    ema_100_first = v[0]
+                    ema_100_last = v[-1]
 
                 # Get trend info
                 trend_info = klein_mgr.get_trend_info()
+
+        # Update the big EMA progress label
+        if hasattr(self, 'ema_progress_label'):
+            if ema_100_first is not None and ema_100_last is not None:
+                delta = ema_100_last - ema_100_first
+                pct = 100 * delta / ema_100_first if ema_100_first else 0
+                arrow = "↓" if pct < 0 else ("↑" if pct > 0 else "→")
+                if pct <= -20:
+                    color = "#00AA00"  # green — real learning
+                    verdict = "strong learning"
+                elif pct <= -5:
+                    color = "#88AA00"  # yellow-green — some learning
+                    verdict = "learning"
+                elif pct <= 2:
+                    color = "#CC8800"  # orange — plateau
+                    verdict = "plateau"
+                else:
+                    color = "#CC0000"  # red — degrading
+                    verdict = "degrading"
+                self.ema_progress_label.setStyleSheet(
+                    f"font-weight: bold; font-size: 16pt; color: {color};"
+                )
+                self.ema_progress_label.setText(
+                    f"{ema_100_last:.3f} {arrow} from {ema_100_first:.3f} "
+                    f"({pct:+.1f}%) — {verdict}"
+                )
+            elif len(losses) < 100:
+                self.ema_progress_label.setText(
+                    f"waiting for 100+ steps... (at step {len(losses)})"
+                )
+                self.ema_progress_label.setStyleSheet(
+                    "font-weight: bold; font-size: 14pt; color: #888;"
+                )
 
         # Fallback to simple moving average if no EMA available
         if not ema_plotted and len(losses) > 10:

@@ -133,15 +133,15 @@ FLUX_PRESETS = {
 
     'flux2_character_9b': {
         'name': 'FLUX 2.0 Character (9B)',
-        'description': 'Character consistency preset for FLUX.2-klein-9B (16GB VRAM optimized)',
+        'description': 'Character consistency preset for FLUX.2-klein-9B',
         'model': 'black-forest-labs/FLUX.2-klein-base-9B',
         'recommended_images': '30-50 images of the same character/person',
         'config': {
-            'learning_rate': 8e-5,
-            'max_train_steps': 1200,
-            'save_every_n_steps': 400,
-            'network_dim': 16,
-            'network_alpha': 8,
+            'learning_rate': 1e-4,
+            'max_train_steps': 2500,
+            'save_every_n_steps': 500,
+            'network_dim': 32,
+            'network_alpha': 32,  # alpha == rank → scaling 1.0
             'optimizer_type': 'AdamW8bit',
             'mixed_precision': 'bf16',
             'save_precision': 'bf16',
@@ -149,26 +149,27 @@ FLUX_PRESETS = {
         },
         'tips': [
             'FLUX 2.0 9B offers quality matching larger models',
-            'Optimized for 16GB VRAM (RTX 4060 Ti, RTX 3090, etc.)',
-            'Uses layer offloading and quantization for efficiency',
+            'Requires 24GB VRAM (with int8 quantization)',
             'Use consistent lighting across training images',
             'Include variety of poses and angles',
             'Caption format: "a photo of [character name], [action/pose]"',
-            'Training time: ~4-5 hours on RTX 4060 Ti 16GB'
+            'Watch EMA-100 in Performance tab — not raw loss',
+            'Target: EMA-100 drops 25-40% from start value',
+            'Training time: ~30-45 min on RTX PRO 4000 Blackwell'
         ]
     },
 
     'flux2_style_9b': {
         'name': 'FLUX 2.0 Style (9B)',
-        'description': 'Style transfer for FLUX.2-klein-9B (16GB VRAM optimized)',
+        'description': 'Style transfer for FLUX.2-klein-9B',
         'model': 'black-forest-labs/FLUX.2-klein-base-9B',
         'recommended_images': '20-40 images in the target style',
         'config': {
-            'learning_rate': 1e-4,
-            'max_train_steps': 1000,
+            'learning_rate': 1.5e-4,
+            'max_train_steps': 2500,
             'save_every_n_steps': 500,
             'network_dim': 32,
-            'network_alpha': 16,
+            'network_alpha': 32,
             'optimizer_type': 'AdamW8bit',
             'mixed_precision': 'bf16',
             'save_precision': 'bf16',
@@ -178,9 +179,10 @@ FLUX_PRESETS = {
             'Focus on stylistic consistency over subject matter',
             'Include variety of subjects in the style',
             'FLUX 2.0 excels at complex artistic styles',
-            'Optimized for 16GB VRAM with layer offloading',
             'Caption with style keywords: "in the style of [style name]"',
-            'Training time: ~3-4 hours on RTX 4060 Ti 16GB'
+            'Higher LR (1.5e-4) encourages style pickup',
+            'Watch EMA-100 in Performance tab — not raw loss',
+            'Training time: ~30-45 min on RTX PRO 4000 Blackwell'
         ]
     },
 
@@ -190,11 +192,11 @@ FLUX_PRESETS = {
         'model': 'black-forest-labs/FLUX.2-klein-base-4B',
         'recommended_images': '15-25 images minimum',
         'config': {
-            'learning_rate': 1.5e-4,
-            'max_train_steps': 600,
-            'save_every_n_steps': 300,
-            'network_dim': 12,
-            'network_alpha': 6,
+            'learning_rate': 2e-4,
+            'max_train_steps': 800,
+            'save_every_n_steps': 400,
+            'network_dim': 16,
+            'network_alpha': 16,
             'optimizer_type': 'AdamW8bit',
             'mixed_precision': 'bf16',
             'save_precision': 'bf16',
@@ -202,25 +204,25 @@ FLUX_PRESETS = {
         },
         'tips': [
             'Uses FLUX.2-klein-4B for ultra-fast training',
-            'Fits RTX 3090/4070 (13GB VRAM)',
+            'Fits 13GB VRAM (RTX 3090/4070)',
             'Good for testing if your dataset works',
             'Results may not be production-quality',
-            'Training time: ~1-1.5 hours on RTX 4090',
+            'Training time: ~20-30 min on RTX PRO 4000 Blackwell',
             'Upgrade to 9B model for final work'
         ]
     },
 
     'flux2_high_quality_9b': {
         'name': 'FLUX 2.0 High Quality (9B)',
-        'description': 'Maximum quality FLUX 2.0 training (16GB VRAM optimized)',
+        'description': 'Maximum quality FLUX 2.0 training',
         'model': 'black-forest-labs/FLUX.2-klein-base-9B',
         'recommended_images': '50-80 images recommended',
         'config': {
-            'learning_rate': 6e-5,
-            'max_train_steps': 2000,
+            'learning_rate': 1e-4,
+            'max_train_steps': 4000,
             'save_every_n_steps': 500,
-            'network_dim': 32,
-            'network_alpha': 16,
+            'network_dim': 64,
+            'network_alpha': 64,  # alpha == rank → scaling 1.0
             'optimizer_type': 'AdamW8bit',
             'mixed_precision': 'bf16',
             'save_precision': 'bf16',
@@ -230,10 +232,11 @@ FLUX_PRESETS = {
             'Use for final production work',
             'Requires high-quality training images',
             'FLUX 2.0 9B produces exceptional results',
-            'Optimized for 16GB VRAM with advanced memory management',
+            'Rank 64 captures fine detail (2x memory vs rank 32)',
             'Best results with 60+ well-captioned images',
-            'Training time: ~6-7 hours on RTX 4060 Ti 16GB',
-            'Comparable to larger models with less VRAM'
+            'Watch EMA-100 in Performance tab — not raw loss',
+            'Target: EMA-100 drops 30-50% from start value',
+            'Training time: ~60-90 min on RTX PRO 4000 Blackwell'
         ]
     }
 }

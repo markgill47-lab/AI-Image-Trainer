@@ -175,7 +175,7 @@ class KleinGUIManager:
             max_train_steps=max_train_steps,
             learning_rate=learning_rate,
             optimizer=gui_config.get('optimizer', 'adamw8bit'),
-            lr_scheduler=gui_config.get('lr_scheduler', 'constant'),
+            lr_scheduler=gui_config.get('lr_scheduler', 'cosine'),
             warmup_steps=int(gui_config.get('warmup_steps', 0)),
             max_grad_norm=float(gui_config.get('max_grad_norm', 1.0)),
             gradient_checkpointing=True,

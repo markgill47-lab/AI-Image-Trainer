@@ -20,7 +20,7 @@ FLUX_PRESETS = {
             'optimizer_type': 'AdamW8bit',
             'mixed_precision': 'bf16',
             'save_precision': 'bf16',
-            'lr_scheduler': 'constant',
+            'lr_scheduler': 'cosine',
         },
         'tips': [
             'FLUX works best with bf16 precision',
@@ -45,7 +45,7 @@ FLUX_PRESETS = {
             'optimizer_type': 'AdamW8bit',
             'mixed_precision': 'bf16',
             'save_precision': 'bf16',
-            'lr_scheduler': 'constant',
+            'lr_scheduler': 'cosine',
         },
         'tips': [
             'Focus on stylistic consistency over subject matter',
@@ -70,7 +70,7 @@ FLUX_PRESETS = {
             'optimizer_type': 'AdamW8bit',
             'mixed_precision': 'bf16',
             'save_precision': 'bf16',
-            'lr_scheduler': 'constant',
+            'lr_scheduler': 'cosine',
         },
         'tips': [
             'Capture location from multiple angles',
@@ -95,7 +95,7 @@ FLUX_PRESETS = {
             'optimizer_type': 'AdamW8bit',
             'mixed_precision': 'bf16',
             'save_precision': 'bf16',
-            'lr_scheduler': 'constant',
+            'lr_scheduler': 'cosine',
         },
         'tips': [
             'Uses FLUX.1-schnell for faster training',
@@ -145,16 +145,18 @@ FLUX_PRESETS = {
             'optimizer_type': 'AdamW8bit',
             'mixed_precision': 'bf16',
             'save_precision': 'bf16',
-            'lr_scheduler': 'constant',
+            'lr_scheduler': 'cosine',
         },
         'tips': [
             'FLUX 2.0 9B offers quality matching larger models',
             'Requires 24GB VRAM (with int8 quantization)',
             'Use consistent lighting across training images',
             'Include variety of poses and angles',
-            'Caption format: "a photo of [character name], [action/pose]"',
+            'Caption: describe backgrounds, poses, lighting — NOT the character\'s features',
+            'Uses cosine LR decay to prevent overtraining / divergence',
             'Watch EMA-100 in Performance tab — not raw loss',
             'Target: EMA-100 drops 25-40% from start value',
+            'If samples get worse over time, test earlier checkpoints (step 500/1000 often best)',
             'Training time: ~30-45 min on RTX PRO 4000 Blackwell'
         ]
     },
@@ -173,7 +175,7 @@ FLUX_PRESETS = {
             'optimizer_type': 'AdamW8bit',
             'mixed_precision': 'bf16',
             'save_precision': 'bf16',
-            'lr_scheduler': 'constant',
+            'lr_scheduler': 'cosine',
         },
         'tips': [
             'Focus on stylistic consistency over subject matter',
@@ -200,7 +202,7 @@ FLUX_PRESETS = {
             'optimizer_type': 'AdamW8bit',
             'mixed_precision': 'bf16',
             'save_precision': 'bf16',
-            'lr_scheduler': 'constant',
+            'lr_scheduler': 'cosine',
         },
         'tips': [
             'Uses FLUX.2-klein-4B for ultra-fast training',

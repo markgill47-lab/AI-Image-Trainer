@@ -357,13 +357,22 @@ class TrainingAnalytics:
         with self._lock:
             # Fresh run detection: if step 1 is recorded but we have old data,
             # this is a new training run reusing the same output name.
-            # Clear stale per-sample data so outlier detection uses current dataset.
+            # Clear EVERYTHING so the new run starts clean.
             if step == 1 and self.last_step > 0:
-                print("Analytics: New training run detected, clearing stale per-sample data")
+                print("Analytics: New training run detected, clearing stale metrics")
                 self.outlier_detector.reset()
-                # Truncate per-sample file
+                self.metrics_history.clear()
+                self._recent_slopes.clear()
+                # Reset EMA calculators
+                self.ema_calculators = {w: EMACalculator(w) for w in self.ema_windows}
+                # Reset trend analyzer
+                self.trend_analyzer = LinearRegressionWindow(self.trend_analyzer.window_size)
+                # Truncate metric files
                 if self.per_sample_file.exists():
                     self.per_sample_file.unlink()
+                if self.metrics_file.exists():
+                    self.metrics_file.unlink()
+                self.last_step = 0
 
             # Skip if already recorded (resume case)
             if step <= self.last_step:
